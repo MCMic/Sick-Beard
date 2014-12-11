@@ -54,7 +54,7 @@ class KATProvider(generic.TorrentProvider):
 
         self.cache = KATCache(self)
         
-        self.url = 'http://kickass.to/'
+        self.url = 'http://kickass.so/'
 
         self.searchurl = self.url+'usearch/%s/?field=seeders&sorder=desc'  #order by seed       
 
@@ -230,6 +230,7 @@ class KATProvider(generic.TorrentProvider):
                     
                 html = self.getURL(searchURL)
                 if not html:
+                    logger.log(u"No html for " + searchURL, logger.DEBUG)
                     continue
 
                 try:
@@ -237,6 +238,7 @@ class KATProvider(generic.TorrentProvider):
 
                     torrent_table = soup.find('table', attrs = {'class' : 'data'})
                     torrent_rows = torrent_table.find_all('tr') if torrent_table else []
+                    logger.log(u"Found " + str(len(torrent_rows)) + " torrent rows ", logger.DEBUG)
 
                     #Continue only if one Release is found
                     if len(torrent_rows)<2:
@@ -246,11 +248,11 @@ class KATProvider(generic.TorrentProvider):
                     for tr in torrent_rows[1:]:
 
                         try:
-                            link = urlparse.urljoin(self.url, (tr.find('div', {'class': 'torrentname'}).find_all('a')[1])['href'])
+                            link = urlparse.urljoin(self.url, tr.find('div', {'class': 'torrentname'}).find('a', {'class': 'cellMainLink'})['href'])
                             id = tr.get('id')[-7:]
-                            title = (tr.find('div', {'class': 'torrentname'}).find_all('a')[1]).text
-                            url = tr.find('a', 'imagnet')['href']
-                            verified = True if tr.find('a', 'iverify') else False
+                            title = tr.find('div', {'class': 'torrentname'}).find('a', {'class': 'cellMainLink'}).text
+                            url = tr.find('a', {'class': 'imagnet'})['href']
+                            verified = True if tr.find('a', {'class': 'iverify'}) else False
                             trusted =  True if tr.find('img', {'alt': 'verified'}) else False
                             seeders = int(tr.find_all('td')[-2].text)
                             leechers = int(tr.find_all('td')[-1].text)
@@ -270,9 +272,11 @@ class KATProvider(generic.TorrentProvider):
                             title = self._find_season_quality(title, link, ep_number)
 
                         if not title or not url:
+                            logger.log(u"No title or url, skipping",logger.DEBUG)
                             continue
 
                         item = title, url, id, seeders, leechers
+                        logger.log(u"Adding title '" + title + "' url '" + url + "'" ,logger.DEBUG)
 
                         items[mode].append(item)
 
